@@ -6,13 +6,16 @@
     <!-- Search -->
     <div class="container search">
       <input @keyup.enter="$fetch" type="text" placeholder="Search" v-model.lazy="searchInput">
-      <button class="button" v-show="searchInput !==''">Clear Search</button>
+      <button @click="clearSearch" class="button" v-show="searchInput !==''">Clear Search</button>
     </div>
 
+    <!-- Loading -->
+    <Loading v-if="$fetchState.pending" />
+
     <!-- Movies -->
-    <div class=" movies">
-      <div id="movie-grid" class="movies-grid">
-        <div class="movie" v-for="(movie,index) in movies" :key="index" >
+    <div v-else class=" movies">
+      <div v-if="searchInput !== ''" id="movie-grid" class="movies-grid">
+        <div class="movie" v-for="(movie,index) in searchedMovies" :key="index" >
           <div class="movie-img">
             <img :src="`https://image.tmdb.org/t/p/w500/${movie.poster_path}`" alt="">
             <p class="review">{{movie.vote_average}}</p>
@@ -38,6 +41,33 @@
             </NuxtLink>
         </div>
       </div>
+      <div v-else id="movie-grid" class="movies-grid">
+        <div class="movie" v-for="(movie,index) in movies" :key="index" >
+          <div class="movie-img">
+            <img :src="`https://image.tmdb.org/t/p/w500/${movie.poster_path}`" alt="">
+            <p class="review">{{movie.vote_average}}</p>
+            <p class="overview">{{movie.overview}}</p>
+          </div>
+          <div class="info">
+            <p class="title">{{movie.title.slice(0,25)}} <span v-if="movie.title.length > 25">...</span></p>
+            <p class="release">
+              Released : {{
+                new Date(movie.release_date).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })
+              }}
+            </p>
+          </div>
+          <NuxtLink
+              class="button button-light"
+              :to="{ name: 'movie-movieid', params: { movieid: movie.id } }"
+            >
+              Get More Info
+            </NuxtLink>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -46,6 +76,24 @@
 import axios from 'axios';
 
 export default {
+  head() {
+    return {
+      title: 'Movie App - Latest Streaming Movies Info',
+      meta: [
+        {
+          hid: 'description',
+          name: 'description',
+          content: 'All the latest streaming movies in theaters & online',
+        },
+        {
+          hid: 'keywords',
+          name: 'keywords',
+          content: 'movies, stream, streaming',
+        },
+        
+      ]
+    }
+  },
   data(){
     return {
       movies: [],
@@ -60,6 +108,7 @@ export default {
     }
     await this.searchMovies();
   },
+  fetchDelay: 1000,
   methods: {
     async getMovies(){
       const data = axios.get(
@@ -69,6 +118,7 @@ export default {
       result.data.results.forEach((movie) => {
         this.movies.push(movie);
       });
+      // console.log('hi');
       // console.log(this.movies);
     },
     async searchMovies() {
@@ -80,6 +130,10 @@ export default {
         this.searchedMovies.push(movie);
       });
       console.log(this.searchedMovies);
+    },
+    clearSearch() {
+      this.searchInput = '';
+      this.searchedMovies = [];
     }
   }
 }
@@ -89,6 +143,11 @@ export default {
 
 
 <style lang="scss" scoped>
+
+.loading {
+  padding-top: 120px;
+  align-items: flex-start;
+}
 
  .search {
     display: flex;
